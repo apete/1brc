@@ -15,32 +15,36 @@
  */
 package dev.morling.onebrc;
 
-import static java.util.stream.Collectors.*;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import org.ojalgo.type.CalendarDateUnit;
+import org.ojalgo.type.NumberDefinition;
+import org.ojalgo.type.Stopwatch;
 
 public class CalculateAverage_baseline {
 
-    private static final String FILE = "./measurements.txt";
+    private static final String FILE = "/Users/apete/Developer/data/1BRC/measurements.txt";
 
     private static record Measurement(String station, double value) {
-        private Measurement(String[] parts) {
-            this(parts[0], Double.parseDouble(parts[1]));
+        private Measurement(final String[] parts) {
+            this(parts[0], NumberDefinition.parseDouble(parts[1]));
         }
     }
 
     private static record ResultRow(double min, double mean, double max) {
 
+        @Override
         public String toString() {
-            return round(min) + "/" + round(mean) + "/" + round(max);
+            return this.round(min) + "/" + this.round(mean) + "/" + this.round(max);
         }
 
-        private double round(double value) {
+        private double round(final double value) {
             return Math.round(value * 10.0) / 10.0;
         }
     };
@@ -52,7 +56,10 @@ public class CalculateAverage_baseline {
         private long count;
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(final String[] args) throws IOException {
+
+        Stopwatch stopwatch = new Stopwatch();
+
         // Map<String, Double> measurements1 = Files.lines(Paths.get(FILE))
         // .map(l -> l.split(";"))
         // .collect(groupingBy(m -> m[0], averagingDouble(m -> Double.parseDouble(m[1]))));
@@ -79,14 +86,15 @@ public class CalculateAverage_baseline {
 
                     return res;
                 },
-                agg -> {
-                    return new ResultRow(agg.min, (Math.round(agg.sum * 10.0) / 10.0) / agg.count, agg.max);
-                });
+                agg -> new ResultRow(agg.min, Math.round(agg.sum * 10.0) / 10.0 / agg.count, agg.max));
 
-        Map<String, ResultRow> measurements = new TreeMap<>(Files.lines(Paths.get(FILE))
+        Map<String, ResultRow> measurements = new TreeMap<>(
+                Files.lines(Paths.get(FILE))
                 .map(l -> new Measurement(l.split(";")))
-                .collect(groupingBy(m -> m.station(), collector)));
+                .collect(Collectors.groupingBy(Measurement::station, collector)));
 
         System.out.println(measurements);
+
+        System.out.println("Done: " + stopwatch.stop(CalendarDateUnit.SECOND));
     }
 }
